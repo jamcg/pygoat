@@ -2,8 +2,10 @@ name: Prisma Cloud Scan
 
 # Controls when the workflow will run
 on:
-  # Triggers the workflow on push event but only for the master branch
+  # Triggers the workflow on push or pull event but only for the master branch
   push:
+    branches: [ master ]
+  pull_request:
     branches: [ master ]
 
   # Allows you to run this workflow manually from the Actions tab
@@ -20,10 +22,35 @@ jobs:
     - name: Checkout repo
       uses: actions/checkout@v2
 
-    - name: Run Bridgecrew 
-      id: Bridgecrew
+    - name: Run Prisma Cloud 
+      id: Prisma_Cloud
       uses: bridgecrewio/bridgecrew-action@master 
       env:
         PRISMA_API_URL: https://api.eu.prismacloud.io
       with:
+        # directory with infrastructure code to scan
+        #directory: # default is .
+        # Run scan only on a specific check identifier (comma separated)
+        #check: 
+        # Run scan on all checks but a specific check identifier (comma separated)
+        #skip_check: 
+        # display only failed checks
+        quiet: true
+        # Environment variable name of the Bridgecrew API key from Bridgecrew app
         api-key: ${{ secrets.PC_API_KEY }}
+        # Runs checks but suppresses error code
+        #soft-fail: 
+        # Directory for custom checks to be loaded
+        #external-checks-dir: 
+        # Output Format (cli, cli+sarif, json, junitxml)
+        output_format: sarif
+    - name: Expose report
+      uses: actions/upload-artifact@v2
+      with:
+        name: SARIF results
+        path: results.sarif
+    # Uploads results.sarif to GitHub repository using the upload-sarif action
+    - uses: github/codeql-action/upload-sarif@v2
+      with:
+        # Path to SARIF file relative to the root of the repository
+        sarif_file: results.sarif
